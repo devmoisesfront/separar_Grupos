@@ -263,7 +263,7 @@
 
 <body>
   <h1>Excel por Group Code (con Celular y Correo en columnas E y F)</h1>
-  <p class="desc">Sigue los pasos: carga archivos, procesa y descarga el Excel final. El contacto es opcional.</p>
+  <p class="desc">Sigue los pasos: carga los tres archivos requeridos, procesa y descarga el Excel final.</p>
 
   <div class="layout">
     <div class="card">
@@ -292,7 +292,7 @@
       </div>
 
       <div class="step">
-        <label for="fileContacto">Contacto / preinscripción (opcional)
+        <label for="fileContacto">Contacto / preinscripción (requerido)
           <small>Excel/CSV/TXT; autodetección.</small>
         </label>
         <div class="file-row">
@@ -329,6 +329,11 @@
   </div>
 
   <script>
+
+    // Extender dayjs con plugin UTC cuando esté disponible
+    if (window.dayjs && window.dayjs_plugin_utc) {
+      dayjs.extend(window.dayjs_plugin_utc);
+    }
 
 
     function leerArchivoComoArrayBuffer(file) {
@@ -483,6 +488,18 @@
         contacto: "Contacto/preinscripción"
       };
 
+      // Nombres que se probarán para autocargar el formulario/contacto desde la misma carpeta
+      const contactoAutoNombres = [
+        "formulario.xlsx",
+        "formulario.xls",
+        "formulario.csv",
+        "formulario.txt",
+        "contacto.xlsx",
+        "contacto.xls",
+        "contacto.csv",
+        "contacto.txt"
+      ];
+
       function scoreRole(name, keywords) {
         const low = name.toLowerCase();
         let score = 0;
@@ -517,8 +534,8 @@
       }
 
       function nowStamp() {
-        if (window.dayjs) {
-          return dayjs().utc().format("YYYYMMDD_HHmm");
+        if (window.dayjs && window.dayjs_plugin_utc) {
+          return dayjs.utc().format("YYYYMMDD_HHmm");
         }
         const d = new Date();
         const pad = n => String(n).padStart(2, "0");
@@ -573,8 +590,6 @@
           const info = mejorRolPara(fileContactoInput.files[0]);
           const bad = info.rol !== "contacto" && info.puntaje > 0;
           chipContacto.innerHTML = `<span class="chip ${bad ? "bad" : ""}">${humanFile(fileContactoInput.files[0])}${bad ? " · ¿Será " + rolNombre[info.rol] + "?" : ""}</span>`;
-        } else {
-          chipContacto.innerHTML = "<span class=\"chip\">Opcional</span>";
         }
       }
 
@@ -602,12 +617,12 @@
         if (avisos.length) {
           setMensaje(avisos.join(" "), true);
         } else {
-          setMensaje("Selecciona al menos calificaciones y grupos para habilitar el procesamiento.");
+          setMensaje("Selecciona calificaciones, grupos y contacto para habilitar el procesamiento.");
         }
       }
 
       function updateUIState() {
-        const ready = !!(fileGcInput.files[0] && fileGroupInput.files[0]);
+        const ready = !!(fileGcInput.files[0] && fileGroupInput.files[0] && fileContactoInput.files[0]);
         btnProcesar.disabled = !ready;
         if (!ready) {
           setEstado("Esperando archivos requeridos...", "idle");
@@ -633,6 +648,29 @@
         setEstado("Esperando archivos requeridos...", "idle");
       }
 
+      // Autocarga el archivo de contacto si se encuentra en la misma carpeta (sirviendo por HTTP/HTTPS)
+      async function intentarAutocargarContacto() {
+        if (fileContactoInput.files && fileContactoInput.files.length > 0) return;
+        for (const nombre of contactoAutoNombres) {
+          try {
+            const res = await fetch(nombre);
+            if (!res.ok) continue;
+            const blob = await res.blob();
+            if (!blob || blob.size === 0) continue;
+            const archivo = new File([blob], nombre, { type: blob.type || "application/octet-stream" });
+            const dt = new DataTransfer();
+            dt.items.add(archivo);
+            fileContactoInput.files = dt.files;
+            mostrarChips();
+            updateUIState();
+            setMensaje(`Archivo de contacto detectado automáticamente: ${nombre}`);
+            return;
+          } catch (e) {
+            // ignorar y probar siguiente nombre
+          }
+        }
+      }
+
       btnProcesar.addEventListener("click", async () => {
         setMensaje("");
         resultado.innerHTML = "";
@@ -643,10 +681,10 @@
 
         const fileGc = fileGcInput.files[0];
         const fileGroup = fileGroupInput.files[0];
-        const fileContacto = fileContactoInput.files[0] || null;
+        const fileContacto = fileContactoInput.files[0];
 
-        if (!fileGc || !fileGroup) {
-          setMensaje("Por favor selecciona al menos archivos de calificaciones y grupos.", true);
+        if (!fileGc || !fileGroup || !fileContacto) {
+          setMensaje("Por favor selecciona calificaciones, grupos y contacto para continuar.", true);
           return;
         }
 
@@ -707,7 +745,9 @@
               }
             }
           }
-
+          if (!tieneContacto) {
+            throw new Error("El archivo de contacto no contiene 'Número de documento' para emparejar.");
+          }
 
           const colGroupCode = encontrarColumna(headersGroup, "group code");
           const colStudentId = encontrarColumna(headersGroup, "student id");
@@ -794,9 +834,7 @@
             `Listo. Estudiantes en archivo de grupos (considerando User Name y Student Id): ${mapaIdAGrupos.size}. ` +
             `Group Codes detectados: ${mapaGrupoFilas.size}. ` +
             `Se encontraron filas del XLS para esos grupos.`;
-          if (tieneContacto) {
-            msg += " Celular y Correo Electrónico1 se añaden en columnas E y F sólo si hubo coincidencia de Número de Documento.";
-          }
+          msg += " Celular y Correo Electrónico1 se añaden en columnas E y F sólo si hubo coincidencia de Número de Documento.";
           setMensaje(msg);
 
           btnDescargar.disabled = false;
@@ -883,9 +921,11 @@
 
       // Estado inicial
       mostrarChips();
-      setMensaje("Selecciona al menos calificaciones y grupos para habilitar el procesamiento.");
+      setMensaje("Selecciona calificaciones, grupos y contacto para habilitar el procesamiento.");
       setEstado("Esperando archivos requeridos...", "idle");
       btnProcesar.disabled = true;
+
+      intentarAutocargarContacto();
     })();
   </script>
 </body>
