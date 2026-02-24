@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Pruebas</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
+
+  <style>
+    :root {
+      --azul: #2563eb;
+      --verde: #22c55e;
+      --gris: #0f172a;
+      --gris-alt: #111827;
+      --panel: #1f2937;
+      --panel-alt: #111827;
+      --borde: #334155;
+      --texto: #e5e7eb;
+      --texto-sec: #94a3b8;
+      --chip: #0ea5e9;
+      --chip-alt: #22d3ee;
+      --error: #f87171;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 1.5rem;
+      background: radial-gradient(circle at 20% 20%, rgba(34,211,238,0.08), transparent 30%),
+                  radial-gradient(circle at 80% 0%, rgba(34,197,94,0.08), transparent 35%),
+                  var(--gris);
+      color: var(--texto);
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 0.6rem;
+    }
+
+    p.desc {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: var(--texto-sec);
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      align-items: start;
+    }
+
+    .card {
+      background: linear-gradient(145deg, var(--panel), var(--panel-alt));
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--borde);
+    }
+
+    .card h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1.08rem;
+      color: var(--chip-alt);
+    }
+
+    .step {
+      margin-bottom: 1rem;
+    }
+
+    .step label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    input[type="file"] { display: none; }
+
+    .file-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .file-button {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      color: #f8fafc;
+      border: 1px dashed rgba(255,255,255,0.25);
+      padding: 0.55rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      box-shadow: 0 6px 15px rgba(14,165,233,0.25);
+      transition: transform 0.08s ease, box-shadow 0.15s ease;
+    }
+
+    .file-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 8px rgba(14,165,233,0.2);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0.4rem 0;
+      color: var(--texto-sec);
+      font-size: 0.86rem;
+    }
+
+    .chip {
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(14,165,233,0.14);
+      color: #e0f2fe;
+    }
+
+    .chip.bad {
+      border-color: rgba(234,179,8,0.6);
+      background: rgba(234,179,8,0.18);
+      color: #facc15;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.2rem;
+    }
+
+    button {
+      padding: 0.6rem 1.1rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: transform 0.05s ease, box-shadow 0.1s ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    #btnProcesar {
+      background: linear-gradient(135deg, #22d3ee, #2563eb);
+      color: #f8fafc;
+      box-shadow: 0 6px 16px rgba(34, 211, 238, 0.32);
+    }
+
+    #btnDescargar {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #f8fafc;
+      box-shadow: 0 6px 16px rgba(22, 197, 126, 0.35);
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--texto-sec);
+      border: 1px solid var(--borde);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #mensajes {
+      font-size: 0.95rem;
+      margin-top: 0.6rem;
+      color: var(--texto);
+      padding: 0.55rem 0.7rem;
+      border-radius: 10px;
+      background: rgba(14,165,233,0.15);
+      border: 1px solid rgba(14,165,233,0.35);
+    }
+
+    #mensajes.error {
+      color: #fecdd3;
+      background: rgba(248,113,113,0.12);
+      border-color: rgba(248,113,113,0.35);
+      font-weight: 700;
+    }
+
+    #resultado {
+      max-height: 360px;
+      overflow: auto;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.7);
+      font-size: 0.9rem;
+      padding: 0.35rem;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      color: var(--texto);
+    }
+
+    th,
+    td {
+      border: 1px solid var(--borde);
+      padding: 0.35rem 0.5rem;
+      text-align: left;
+      white-space: nowrap;
+      font-size: 0.9rem;
+      background: rgba(255,255,255,0.02);
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: linear-gradient(135deg, rgba(14,165,233,0.25), rgba(37,99,235,0.25));
+      z-index: 1;
+    }
+
+    .status {
+      display: flex;
+      gap: 0.7rem;
+      align-items: center;
+      margin: 0.6rem 0 0.2rem;
+      color: var(--texto-sec);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #475569;
+    }
+
+    .dot.ok {
+      background: var(--verde);
+      box-shadow: 0 0 0 6px rgba(34,197,94,0.18);
+    }
+
+    .dot.run {
+      background: var(--azul);
+      box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.2);
+    }
+
+    small {
+      color: var(--texto-sec);
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Excel por Group Code (con Celular y Correo en columnas E y F)</h1>
+  <p class="desc">Sigue los pasos: carga archivos, procesa y descarga el Excel final. El contacto es opcional.</p>
+
+  <div class="layout">
+    <div class="card">
+      <h2>Paso 1: Cargar archivos</h2>
+
+      <div class="step">
+        <label for="fileGc">Calificaciones (Excel/CSV/TXT)
+          <small>No requiere formato puntual, detecta delimitador/encoding automáticamente.</small>
+        </label>
+        <div class="file-row">
+          <button type="button" class="file-button" id="btnFileGc">Seleccionar archivo</button>
+          <input type="file" id="fileGc" />
+        </div>
+        <div class="chips" id="chipGc"></div>
+      </div>
+
+      <div class="step">
+        <label for="fileGroup">Integrantes de grupos (Excel/CSV/TXT)
+          <small>No requiere formato puntual; se autodetecta separador.</small>
+        </label>
+        <div class="file-row">
+          <button type="button" class="file-button" id="btnFileGroup">Seleccionar archivo</button>
+          <input type="file" id="fileGroup" />
+        </div>
+        <div class="chips" id="chipGroup"></div>
+      </div>
+
+      <div class="step">
+        <label for="fileContacto">Contacto / preinscripción (opcional)
+          <small>Excel/CSV/TXT; autodetección.</small>
+        </label>
+        <div class="file-row">
+          <button type="button" class="file-button" id="btnFileContacto">Seleccionar archivo</button>
+          <input type="file" id="fileContacto" />
+        </div>
+        <div class="chips" id="chipContacto"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Paso 2: Procesar y validar</h2>
+      <p class="desc" style="margin-bottom:0.75rem;">Verifica las coincidencias de nombre. Luego pulsa procesar.</p>
+      <div class="actions">
+        <button id="btnProcesar" disabled>Crear Excel por grupos</button>
+        <button id="btnReset" class="secondary">Limpiar</button>
+      </div>
+
+      <div class="status">
+        <span class="dot" id="dotEstado"></span>
+        <span id="estadoTexto">Esperando archivos requeridos...</span>
+      </div>
+
+      <div id="mensajes"></div>
+    </div>
+
+    <div class="card">
+      <h2>Paso 3: Resultado y descarga</h2>
+      <div class="actions" style="margin-bottom:0.6rem;">
+        <button id="btnDescargar" disabled>Descargar Excel generado</button>
+      </div>
+      <div id="resultado"></div>
+    </div>
+  </div>
+
+  <script>
+
+
+    function leerArchivoComoArrayBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function detectarEncodingDesdeBOM(buffer) {
+      const view = new Uint8Array(buffer.slice(0, 3));
+      if (view[0] === 0xef && view[1] === 0xbb && view[2] === 0xbf) return "utf-8";
+      if (view[0] === 0xff && view[1] === 0xfe) return "utf-16le";
+      if (view[0] === 0xfe && view[1] === 0xff) return "utf-16be";
+      return null;
+    }
+
+    function bufferToTexto(buffer, fallbackEncoding = "utf-8") {
+      const bomEncoding = detectarEncodingDesdeBOM(buffer) || fallbackEncoding;
+      const decoder = new TextDecoder(bomEncoding, { fatal: false });
+      return decoder.decode(buffer);
+    }
+
+    async function leerArchivoComoTextoFlexible(file, fallbackEncoding = "utf-8") {
+      const buffer = await leerArchivoComoArrayBuffer(file);
+      return bufferToTexto(buffer, fallbackEncoding);
+    }
+
+    function limpiarCelda(celda) {
+      if (celda == null) return "";
+      let c = String(celda);
+      c = c.replace(/^\uFEFF/, "");
+      c = c.replace(/^"(.*)"$/, "$1");
+      return c.trim();
+    }
+
+    function detectarDelimitador(linea) {
+      const candidatos = ["\t", ";", ","];
+      let mejor = "\t";
+      let maxCampos = 0;
+      candidatos.forEach(d => {
+        const count = linea.split(d).length;
+        if (count > maxCampos) {
+          maxCampos = count;
+          mejor = d;
+        }
+      });
+      return mejor;
+    }
+
+    function parseTabla(texto) {
+      const lineas = texto
+        .split(/\r?\n/)
+        .filter(l => l.trim().length > 0);
+
+      if (lineas.length === 0) return { headers: [], rows: [] };
+
+      const delimitador = detectarDelimitador(lineas[0]);
+      const headers = lineas[0].split(delimitador).map(limpiarCelda);
+
+      const rows = lineas.slice(1).map(linea => {
+        const celdas = linea.split(delimitador).map(limpiarCelda);
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h] = celdas[i] !== undefined ? celdas[i] : "";
+        });
+        return obj;
+      });
+
+      return { headers, rows };
+    }
+
+    async function cargarTablaFlexible(file, opciones = { preferTab: false }) {
+      const buffer = await leerArchivoComoArrayBuffer(file);
+
+      // Intentar leer como Excel primero, aunque la extensión no sea xls/xlsx
+      try {
+        const wb = XLSX.read(buffer, { type: "array" });
+        if (wb.SheetNames && wb.SheetNames.length > 0) {
+          const sheet = wb.SheetNames[0];
+          const data = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { defval: "" });
+          if (data.length > 0) {
+            const headers = Object.keys(data[0]).map(limpiarCelda);
+            const rows = data.map(f => {
+              const obj = {};
+              headers.forEach(h => (obj[h] = limpiarCelda(f[h])));
+              return obj;
+            });
+            return { headers, rows };
+          }
+        }
+      } catch (e) {
+        // Si no es Excel o falla, se continúa a texto
+      }
+
+      const texto = bufferToTexto(buffer, opciones.preferTab ? "utf-16le" : "utf-8");
+      return parseTabla(texto);
+    }
+
+    function encontrarColumna(headers, fragmentoBuscado) {
+      const frag = fragmentoBuscado.toLowerCase();
+      const encontrado = headers.find(h => h.toLowerCase().includes(frag));
+      return encontrado || null;
+    }
+
+    function renderResumenGrupos(contenedor, mapaGrupoFilas) {
+      if (mapaGrupoFilas.size === 0) {
+        contenedor.innerHTML = "<p>No se encontraron filas del XLS que pertenezcan a los grupos.</p>";
+        return;
+      }
+      let html = "<table><thead><tr><th>Group Code</th><th>Nº filas en hoja</th></tr></thead><tbody>";
+      for (const [groupCode, filas] of mapaGrupoFilas.entries()) {
+        html += `<tr><td>${groupCode}</td><td>${filas.length}</td></tr>`;
+      }
+      html += "</tbody></table>";
+      contenedor.innerHTML = html;
+    }
+
+    (function init() {
+      const fileGcInput = document.getElementById("fileGc");
+      const fileGroupInput = document.getElementById("fileGroup");
+      const fileContactoInput = document.getElementById("fileContacto");
+      const btnFileGc = document.getElementById("btnFileGc");
+      const btnFileGroup = document.getElementById("btnFileGroup");
+      const btnFileContacto = document.getElementById("btnFileContacto");
+      const btnProcesar = document.getElementById("btnProcesar");
+      const btnDescargar = document.getElementById("btnDescargar");
+      const btnReset = document.getElementById("btnReset");
+      const mensajes = document.getElementById("mensajes");
+      const resultado = document.getElementById("resultado");
+      const chipGc = document.getElementById("chipGc");
+      const chipGroup = document.getElementById("chipGroup");
+      const chipContacto = document.getElementById("chipContacto");
+      const dotEstado = document.getElementById("dotEstado");
+      const estadoTexto = document.getElementById("estadoTexto");
+
+      let headersGcGlobal = [];
+      let mapaGrupoFilasGlobal = new Map();
+      let tieneContacto = false;
+
+      const patrones = {
+        gc: ["fullgc", "gc_", "grade", "calificacion", "calificaciones"],
+        group: ["groupmembers", "group members", "groupmembers", "grupo", "groupcode"],
+        contacto: ["preinscripcion", "preinscripción", "contacto", "formulario", "inscripcion"]
+      };
+
+      const rolNombre = {
+        gc: "Calificaciones",
+        group: "Integrantes de grupos",
+        contacto: "Contacto/preinscripción"
+      };
+
+      function scoreRole(name, keywords) {
+        const low = name.toLowerCase();
+        let score = 0;
+        keywords.forEach(k => {
+          if (low.includes(k)) score += k.length;
+        });
+        return score;
+      }
+
+      function mejorRolPara(file) {
+        const name = file.name || "";
+        const scores = {
+          gc: scoreRole(name, patrones.gc),
+          group: scoreRole(name, patrones.group),
+          contacto: scoreRole(name, patrones.contacto)
+        };
+        const entries = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+        const [rol, puntaje] = entries[0];
+        return { rol, puntaje, scores };
+      }
+
+      function humanFile(file) {
+        const size = file.size || 0;
+        const units = ["B", "KB", "MB", "GB"];
+        let n = size;
+        let i = 0;
+        while (n >= 1024 && i < units.length - 1) {
+          n /= 1024;
+          i += 1;
+        }
+        return `${file.name} · ${n.toFixed(n >= 10 ? 0 : 1)} ${units[i]}`;
+      }
+
+      function nowStamp() {
+        if (window.dayjs) {
+          return dayjs().utc().format("YYYYMMDD_HHmm");
+        }
+        const d = new Date();
+        const pad = n => String(n).padStart(2, "0");
+        return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+      }
+
+      function sheetNameFromCode(code) {
+        const base = code && String(code).trim() ? String(code).trim() : "Grupo";
+        const name = `Grupo_${base}`;
+        return name.length > 31 ? name.slice(0, 31) : name;
+      }
+
+      function resumenAOA(mapa) {
+        const aoa = [["Group Code", "Filas en hoja"]];
+        for (const [groupCode, filas] of mapa.entries()) {
+          aoa.push([groupCode || "Grupo", filas.length]);
+        }
+        return aoa;
+      }
+
+      function setMensaje(msg, esError = false) {
+        mensajes.textContent = msg || "";
+        mensajes.classList.toggle("error", esError);
+        mensajes.style.display = msg ? "block" : "none";
+      }
+
+      function setEstado(texto, estado = "idle") {
+        estadoTexto.textContent = texto;
+        dotEstado.className = "dot"; // reset
+        if (estado === "ok") dotEstado.classList.add("ok");
+        if (estado === "run") dotEstado.classList.add("run");
+      }
+
+      function mostrarChips() {
+        chipGc.innerHTML = "";
+        chipGroup.innerHTML = "";
+        chipContacto.innerHTML = "";
+
+        if (fileGcInput.files[0]) {
+          const info = mejorRolPara(fileGcInput.files[0]);
+          const bad = info.rol !== "gc" && info.puntaje > 0;
+          chipGc.innerHTML = `<span class="chip ${bad ? "bad" : ""}">${humanFile(fileGcInput.files[0])}${bad ? " · ¿Será " + rolNombre[info.rol] + "?" : ""}</span>`;
+        }
+
+        if (fileGroupInput.files[0]) {
+          const info = mejorRolPara(fileGroupInput.files[0]);
+          const bad = info.rol !== "group" && info.puntaje > 0;
+          chipGroup.innerHTML = `<span class="chip ${bad ? "bad" : ""}">${humanFile(fileGroupInput.files[0])}${bad ? " · ¿Será " + rolNombre[info.rol] + "?" : ""}</span>`;
+        }
+
+        if (fileContactoInput.files[0]) {
+          const info = mejorRolPara(fileContactoInput.files[0]);
+          const bad = info.rol !== "contacto" && info.puntaje > 0;
+          chipContacto.innerHTML = `<span class="chip ${bad ? "bad" : ""}">${humanFile(fileContactoInput.files[0])}${bad ? " · ¿Será " + rolNombre[info.rol] + "?" : ""}</span>`;
+        } else {
+          chipContacto.innerHTML = "<span class=\"chip\">Opcional</span>";
+        }
+      }
+
+      function advertirCoincidenciaNombres() {
+        const avisos = [];
+        if (fileGcInput.files[0]) {
+          const { rol, puntaje } = mejorRolPara(fileGcInput.files[0]);
+          if (rol !== "gc" && puntaje > 0) {
+            avisos.push(`El archivo de Calificaciones se parece más a "${rolNombre[rol]}".`);
+          }
+        }
+        if (fileGroupInput.files[0]) {
+          const { rol, puntaje } = mejorRolPara(fileGroupInput.files[0]);
+          if (rol !== "group" && puntaje > 0) {
+            avisos.push(`El archivo de Grupos se parece más a "${rolNombre[rol]}".`);
+          }
+        }
+        if (fileContactoInput.files[0]) {
+          const { rol, puntaje } = mejorRolPara(fileContactoInput.files[0]);
+          if (rol !== "contacto" && puntaje > 0) {
+            avisos.push(`El archivo de Contacto se parece más a "${rolNombre[rol]}".`);
+          }
+        }
+
+        if (avisos.length) {
+          setMensaje(avisos.join(" "), true);
+        } else {
+          setMensaje("Selecciona al menos calificaciones y grupos para habilitar el procesamiento.");
+        }
+      }
+
+      function updateUIState() {
+        const ready = !!(fileGcInput.files[0] && fileGroupInput.files[0]);
+        btnProcesar.disabled = !ready;
+        if (!ready) {
+          setEstado("Esperando archivos requeridos...", "idle");
+        } else {
+          setEstado("Listo para procesar", "ok");
+        }
+        mostrarChips();
+        advertirCoincidenciaNombres();
+      }
+
+      function resetUI() {
+        fileGcInput.value = "";
+        fileGroupInput.value = "";
+        fileContactoInput.value = "";
+        resultado.innerHTML = "";
+        setMensaje("", false);
+        headersGcGlobal = [];
+        mapaGrupoFilasGlobal = new Map();
+        tieneContacto = false;
+        btnDescargar.disabled = true;
+        btnProcesar.disabled = true;
+        mostrarChips();
+        setEstado("Esperando archivos requeridos...", "idle");
+      }
+
+      btnProcesar.addEventListener("click", async () => {
+        setMensaje("");
+        resultado.innerHTML = "";
+        btnDescargar.disabled = true;
+        headersGcGlobal = [];
+        mapaGrupoFilasGlobal = new Map();
+        tieneContacto = false;
+
+        const fileGc = fileGcInput.files[0];
+        const fileGroup = fileGroupInput.files[0];
+        const fileContacto = fileContactoInput.files[0] || null;
+
+        if (!fileGc || !fileGroup) {
+          setMensaje("Por favor selecciona al menos archivos de calificaciones y grupos.", true);
+          return;
+        }
+
+        try {
+          setMensaje("Detectando formato y procesando archivos...");
+          setEstado("Procesando...", "run");
+          btnProcesar.disabled = true;
+          btnProcesar.textContent = "Procesando...";
+
+
+          const tablaGc = await cargarTablaFlexible(fileGc, { preferTab: true });
+          const tablaGroup = await cargarTablaFlexible(fileGroup, {});
+
+          const headersGc = tablaGc.headers;
+          const rowsGc = tablaGc.rows;
+          const headersGroup = tablaGroup.headers;
+          const rowsGroup = tablaGroup.rows;
+
+          if (headersGc.length === 0 || rowsGc.length === 0) {
+            throw new Error("No se pudieron leer filas válidas del archivo de calificaciones.");
+          }
+          if (headersGroup.length === 0 || rowsGroup.length === 0) {
+            throw new Error("No se pudieron leer filas válidas del archivo de grupos.");
+          }
+
+
+          let mapaDocumentoAContacto = null;
+          if (fileContacto) {
+            const arrayBuffer = await leerArchivoComoArrayBuffer(fileContacto);
+            const workbook = XLSX.read(arrayBuffer, { type: "array" });
+
+            const firstSheetName = workbook.SheetNames[0];
+            const ws = workbook.Sheets[firstSheetName];
+            const data = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+            if (data.length > 0) {
+              const headersContacto = Object.keys(data[0]);
+              const colNumDoc =
+                encontrarColumna(headersContacto, "número de documento") ||
+                encontrarColumna(headersContacto, "numero de documento");
+              const colCelular = encontrarColumna(headersContacto, "celular");
+              const colCorreo1 =
+                encontrarColumna(headersContacto, "correo electrónico1") ||
+                encontrarColumna(headersContacto, "correo electronico1");
+
+              if (colNumDoc) {
+                mapaDocumentoAContacto = new Map();
+                for (const fila of data) {
+                  const doc = limpiarCelda(fila[colNumDoc]);
+                  if (!doc) continue;
+                  const cel = colCelular ? limpiarCelda(fila[colCelular]) : "";
+                  const cor = colCorreo1 ? limpiarCelda(fila[colCorreo1]) : "";
+                  mapaDocumentoAContacto.set(doc, { celular: cel, correo1: cor });
+                }
+                if (mapaDocumentoAContacto.size > 0) {
+                  tieneContacto = true;
+                }
+              }
+            }
+          }
+
+
+          const colGroupCode = encontrarColumna(headersGroup, "group code");
+          const colStudentId = encontrarColumna(headersGroup, "student id");
+          const colUserName = encontrarColumna(headersGroup, "user name");
+
+          if (!colGroupCode || (!colStudentId && !colUserName)) {
+            throw new Error("No se encontraron las columnas 'Group Code' y (User Name / Student Id) en el CSV de grupos.");
+          }
+
+
+          const mapaIdAGrupos = new Map();
+          for (const fila of rowsGroup) {
+            const grupo = limpiarCelda(fila[colGroupCode]);
+            const idStudent = colStudentId ? limpiarCelda(fila[colStudentId]) : "";
+            const idUser = colUserName ? limpiarCelda(fila[colUserName]) : "";
+
+            if (!grupo) continue;
+            const posiblesIds = [idStudent, idUser].filter(v => v && v !== "");
+
+            if (posiblesIds.length === 0) continue;
+
+            for (const id of posiblesIds) {
+              if (!mapaIdAGrupos.has(id)) {
+                mapaIdAGrupos.set(id, new Set());
+              }
+              mapaIdAGrupos.get(id).add(grupo);
+            }
+          }
+
+          if (mapaIdAGrupos.size === 0) {
+            throw new Error("No se encontraron IDs de estudiantes asociados a Group Code en el CSV (ni por Student Id ni por User Name).");
+          }
+
+
+          const colIdEstudiante = encontrarColumna(headersGc, "id de estudiante");
+          const colNombreUsuario = encontrarColumna(headersGc, "nombre de usuario");
+
+          if (!colIdEstudiante && !colNombreUsuario) {
+            throw new Error("No se encontraron las columnas 'ID de estudiante' ni 'Nombre de usuario' en el XLS.");
+          }
+
+
+          const mapaGrupoFilas = new Map();
+
+          for (const fila of rowsGc) {
+            const id1 = colIdEstudiante ? limpiarCelda(fila[colIdEstudiante]) : "";
+            const id2 = colNombreUsuario ? limpiarCelda(fila[colNombreUsuario]) : "";
+            const id = id1 || id2;
+            if (!id) continue;
+
+            const grupos = mapaIdAGrupos.get(id);
+            if (!grupos) continue;
+
+
+            if (mapaDocumentoAContacto) {
+              const contacto = mapaDocumentoAContacto.get(id);
+              if (contacto) {
+                fila["Celular"] = contacto.celular || "";
+                fila["Correo Electrónico1"] = contacto.correo1 || "";
+              } else {
+                fila["Celular"] = fila["Celular"] || "";
+                fila["Correo Electrónico1"] = fila["Correo Electrónico1"] || "";
+              }
+            }
+
+            for (const groupCode of grupos) {
+              if (!mapaGrupoFilas.has(groupCode)) {
+                mapaGrupoFilas.set(groupCode, []);
+              }
+              mapaGrupoFilas.get(groupCode).push(fila);
+            }
+          }
+
+          if (mapaGrupoFilas.size === 0) {
+            throw new Error("No se encontraron coincidencias entre los IDs del XLS y los IDs del CSV de grupos.");
+          }
+
+          headersGcGlobal = headersGc;
+          mapaGrupoFilasGlobal = mapaGrupoFilas;
+
+          renderResumenGrupos(resultado, mapaGrupoFilas);
+
+          let msg =
+            `Listo. Estudiantes en archivo de grupos (considerando User Name y Student Id): ${mapaIdAGrupos.size}. ` +
+            `Group Codes detectados: ${mapaGrupoFilas.size}. ` +
+            `Se encontraron filas del XLS para esos grupos.`;
+          if (tieneContacto) {
+            msg += " Celular y Correo Electrónico1 se añaden en columnas E y F sólo si hubo coincidencia de Número de Documento.";
+          }
+          setMensaje(msg);
+
+          btnDescargar.disabled = false;
+          setEstado("Listo: descarga disponible", "ok");
+
+        } catch (err) {
+          console.error(err);
+          setMensaje("Error al procesar: " + (err.message || err), true);
+          setEstado("Hubo un error", "idle");
+        }
+        btnProcesar.disabled = false;
+        btnProcesar.textContent = "4. Crear Excel por grupos";
+      });
+
+      btnDescargar.addEventListener("click", () => {
+        if (!headersGcGlobal.length || mapaGrupoFilasGlobal.size === 0) return;
+
+        try {
+          const wb = XLSX.utils.book_new();
+
+          // Hoja resumen
+          const wsResumen = XLSX.utils.aoa_to_sheet(resumenAOA(mapaGrupoFilasGlobal));
+          XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+          for (const [groupCode, filas] of mapaGrupoFilasGlobal.entries()) {
+            const aoa = [];
+
+
+
+            const headersOriginales = headersGcGlobal.slice();
+            const nuevosHeaders = [
+              ...headersOriginales.slice(0, 4),
+              "Celular",
+              "Correo Electrónico1",
+              ...headersOriginales.slice(4)
+            ];
+
+            aoa.push(nuevosHeaders);
+
+            for (const fila of filas) {
+
+              const rowArr = headersOriginales.map(h => fila[h] != null ? fila[h] : "");
+
+
+              const nuevaFila = [
+                ...rowArr.slice(0, 4),
+                fila["Celular"] || "",
+                fila["Correo Electrónico1"] || "",
+                ...rowArr.slice(4)
+              ];
+
+              aoa.push(nuevaFila);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+
+            XLSX.utils.book_append_sheet(wb, ws, sheetNameFromCode(groupCode));
+          }
+
+          const filename = `calificaciones_por_groupcode_contacto_${nowStamp()}.xlsx`;
+          XLSX.writeFile(wb, filename);
+          setMensaje(`Archivo generado: ${filename}`, false);
+          setEstado("Archivo generado", "ok");
+        } catch (err) {
+          console.error(err);
+          setMensaje("Error al generar el archivo Excel: " + (err.message || err), true);
+        }
+      });
+
+      fileGcInput.addEventListener("change", updateUIState);
+      fileGroupInput.addEventListener("change", updateUIState);
+      fileContactoInput.addEventListener("change", updateUIState);
+
+      btnReset.addEventListener("click", resetUI);
+
+      const hookChooser = (button, input) => {
+        button.addEventListener("click", () => input.click());
+      };
+
+      hookChooser(btnFileGc, fileGcInput);
+      hookChooser(btnFileGroup, fileGroupInput);
+      hookChooser(btnFileContacto, fileContactoInput);
+
+      // Estado inicial
+      mostrarChips();
+      setMensaje("Selecciona al menos calificaciones y grupos para habilitar el procesamiento.");
+      setEstado("Esperando archivos requeridos...", "idle");
+      btnProcesar.disabled = true;
+    })();
+  </script>
+</body>
+
+</html>
